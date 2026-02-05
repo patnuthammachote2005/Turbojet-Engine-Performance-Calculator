@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turbojet Engine Performance Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a4d8f;
+            --primary-light: #2d6bb3;
+            --primary-dark: #0d3266;
+            --accent: #ff6b35;
+            --accent-light: #ff8559;
+            --bg-dark: #0a0e1a;
+            --bg-card: #141a2e;
+            --bg-input: #1c2538;
+            --text-primary: #e8edf5;
+            --text-secondary: #9ca8bc;
+            --text-muted: #6b7a94;
+            --border: #2a3650;
+            --success: #4ade80;
+            --grid-color: rgba(45, 107, 179, 0.1);
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1629 50%, var(--bg-dark) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, var(--grid-color) 2px, var(--grid-color) 3px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, var(--grid-color) 2px, var(--grid-color) 3px);
+            background-size: 60px 60px;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .controls-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.6s ease-out 0.1s backwards;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .label-symbol {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .input-group input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(45, 107, 179, 0.1);
+        }
+
+        .input-group input:hover {
+            border-color: var(--primary);
+        }
+
+        .toggle-section {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 32px;
+            background: var(--border);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(28px);
+        }
+
+        .toggle-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .toggle-description {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .ab-temp-input {
+            margin-top: 1rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .chart-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 2rem 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--bg-card) 100%);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.6s ease-out 0.3s backwards;
+        }
+
+        .info-panel h4 {
+            color: var(--accent-light);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .info-panel ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-panel li {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+            padding-left: 1.2rem;
+            position: relative;
+        }
+
+        .info-panel li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Turbojet Engine Performance Calculator</h1>
+            <p>Parametric Cycle Analysis for Ideal Turbojet Engines</p>
+        </div>
+
+        <div class="info-panel">
+            <h4>Ideal Engine Assumptions</h4>
+            <ul>
+                <li>Isentropic compression and expansion (reversible & adiabatic)</li>
+                <li>Constant-pressure combustion (π<sub>b</sub> = 1)</li>
+                <li>Perfect gas behavior with constant specific heats</li>
+                <li>Nozzle expands exhaust to ambient pressure (P<sub>e</sub> = P<sub>0</sub>)</li>
+            </ul>
+        </div>
+
+        <div class="controls-card">
+            <div class="controls-grid">
+                <div class="input-group">
+                    <label><span class="label-symbol">T₀</span> Freestream Temperature (K)</label>
+                    <input type="number" id="T_0" value="216.667" onchange="updateCalculations()">
+                </div>
+                <div class="input-group">
+                    <label><span class="label-symbol">T<sub>t4</sub></span> Turbine Inlet Temperature (K)</label>
+                    <input type="number" id="T_t4" value="1666.667" onchange="updateCalculations()">
+                </div>
+                <div class="input-group">
+                    <label><span class="label-symbol">γ</span> Heat Capacity Ratio</label>
+                    <input type="number" step="0.01" id="gamma" value="1.4" onchange="updateCalculations()">
+                </div>
+                <div class="input-group">
+                    <label><span class="label-symbol">c<sub>p</sub></span> Specific Heat (J/kg·K)</label>
+                    <input type="number" id="c_p" value="1004.832" onchange="updateCalculations()">
+                </div>
+                <div class="input-group">
+                    <label><span class="label-symbol">h<sub>PR</sub></span> Fuel Heating Value (J/kg)</label>
+                    <input type="number" id="h_PR" value="42798400" onchange="updateCalculations()">
+                </div>
+            </div>
+
+            <div class="toggle-section">
+                <div class="toggle-container" onclick="toggleAfterburner()">
+                    <div class="toggle-switch" id="toggleSwitch">
+                        <div class="toggle-slider"></div>
+                    </div>
+                    <div>
+                        <div class="toggle-label">Enable Afterburner</div>
+                        <div class="toggle-description">
+                            Adds post-turbine combustion for increased thrust at the cost of fuel efficiency
+                        </div>
+                    </div>
+                </div>
+                <div id="abTempInput" style="display: none;" class="ab-temp-input">
+                    <div class="input-group">
+                        <label><span class="label-symbol">T<sub>t7</sub></span> Afterburner Exit Temperature (K)</label>
+                        <input type="number" id="T_t7" value="2200" onchange="updateCalculations()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Performance vs Compressor Pressure Ratio (π<sub>c</sub>)</h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Specific Thrust vs π<sub>c</sub></h3>
+                <div class="chart-container">
+                    <canvas id="chart1"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Specific Fuel Consumption vs π<sub>c</sub></h3>
+                <div class="chart-container">
+                    <canvas id="chart2"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Fuel-to-Air Ratio vs π<sub>c</sub></h3>
+                <div class="chart-container">
+                    <canvas id="chart3"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Efficiencies vs π<sub>c</sub></h3>
+                <div class="chart-container">
+                    <canvas id="chart4"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="section-title">Performance vs Mach Number (M₀)</h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>Specific Thrust vs M₀</h3>
+                <div class="chart-container">
+                    <canvas id="chart5"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Specific Fuel Consumption vs M₀</h3>
+                <div class="chart-container">
+                    <canvas id="chart6"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Fuel-to-Air Ratio vs M₀</h3>
+                <div class="chart-container">
+                    <canvas id="chart7"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Efficiencies vs M₀</h3>
+                <div class="chart-container">
+                    <canvas id="chart8"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let afterburnerEnabled = false;
+        const charts = {};
+        
+        // Values of interest
+        const M_0_voi = [0, 0.5, 1, 1.5, 2, 2.5, 3];
+        const pi_c_voi = [1, 2, 3, 5, 10, 20, 30];
+        const eta_M_0_voi = [1, 2, 3];
+        const eta_pi_c_voi = [2, 5, 30];
+        
+        // Color schemes
+        const colors = ['#2d6bb3', '#4ade80', '#fbbf24', '#f87171', '#a78bfa', '#fb923c', '#22d3ee'];
+        const colorsAB = ['#ff6b35', '#ff8559', '#ff9e7c', '#ffb79f'];
+
+        function toggleAfterburner() {
+            afterburnerEnabled = !afterburnerEnabled;
+            const toggleSwitch = document.getElementById('toggleSwitch');
+            const abTempInput = document.getElementById('abTempInput');
+            
+            if (afterburnerEnabled) {
+                toggleSwitch.classList.add('active');
+                abTempInput.style.display = 'block';
+            } else {
+                toggleSwitch.classList.remove('active');
+                abTempInput.style.display = 'none';
+            }
+            
+            updateCalculations();
+        }
+
+        function getParams() {
+            return {
+                T_0: parseFloat(document.getElementById('T_0').value),
+                gamma: parseFloat(document.getElementById('gamma').value),
+                c_p: parseFloat(document.getElementById('c_p').value),
+                h_PR: parseFloat(document.getElementById('h_PR').value),
+                T_t4: parseFloat(document.getElementById('T_t4').value),
+                T_t7: parseFloat(document.getElementById('T_t7').value)
+            };
+        }
+
+        function calculateConstants(params) {
+            const R = ((params.gamma - 1) / params.gamma) * params.c_p;
+            const a_0 = Math.sqrt(params.gamma * R * params.T_0);
+            const tau_lambda = params.T_t4 / params.T_0;
+            const tau_lambda_AB = afterburnerEnabled ? params.T_t7 / params.T_0 : tau_lambda;
+            return { R, a_0, tau_lambda, tau_lambda_AB };
+        }
+
+        function calculateParams(M_0, pi_c, params, constants, useAfterburner = false) {
+            const tau_r = 1 + ((params.gamma - 1) / 2) * M_0 * M_0;
+            const tau_c = Math.pow(pi_c, (params.gamma - 1) / params.gamma);
+            const tau_t = 1 - (tau_r / constants.tau_lambda) * (tau_c - 1);
+            
+            let v9_by_a_0, f, tau_lambda_used;
+            
+            if (useAfterburner && afterburnerEnabled) {
+                tau_lambda_used = constants.tau_lambda_AB;
+                v9_by_a_0 = Math.sqrt((2 / (params.gamma - 1)) * (tau_lambda_used / (tau_r * tau_c)) * (tau_r * tau_c * tau_t - 1));
+                f = ((params.c_p * params.T_0) / params.h_PR) * (tau_lambda_used - tau_r * tau_c);
+            } else {
+                tau_lambda_used = constants.tau_lambda;
+                v9_by_a_0 = Math.sqrt((2 / (params.gamma - 1)) * (tau_lambda_used / (tau_r * tau_c)) * (tau_r * tau_c * tau_t - 1));
+                f = ((params.c_p * params.T_0) / params.h_PR) * (tau_lambda_used - tau_r * tau_c);
+            }
+
+            const F_by_mdot_0 = constants.a_0 * (v9_by_a_0 - M_0);
+            const S = f / F_by_mdot_0;
+            const eta_T = 1 - (1 / (tau_r * tau_c));
+            const eta_P = (2 * M_0) / (v9_by_a_0 + M_0);
+            const eta_O = eta_P * eta_T;
+
+            return { F_by_mdot_0, f, S, eta_T: eta_T * 100, eta_P: eta_P * 100, eta_O: eta_O * 100 };
+        }
+
+        function createChart(canvasId, config) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            charts[canvasId] = new Chart(ctx, config);
+        }
+
+        function updateCalculations() {
+            const params = getParams();
+            const constants = calculateConstants(params);
+            
+            // Generate pi_c array
+            const pi_c_array = [];
+            for (let pi_c = 1; pi_c <= 40; pi_c += 0.5) {
+                pi_c_array.push(pi_c);
+            }
+            
+            // Generate M_0 array
+            const M_0_array = [];
+            for (let M_0 = 0; M_0 <= 3; M_0 += 0.1) {
+                M_0_array.push(M_0);
+            }
+            
+            // Chart 1: Specific Thrust vs pi_c
+            const datasets1 = [];
+            M_0_voi.forEach((M_0, idx) => {
+                const data = pi_c_array.map(pi_c => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: pi_c, y: result.F_by_mdot_0 };
+                });
+                datasets1.push({
+                    label: `M₀=${M_0}`,
+                    data: data,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                
+                if (afterburnerEnabled) {
+                    const dataAB = pi_c_array.map(pi_c => {
+                        const result = calculateParams(M_0, pi_c, params, constants, true);
+                        return { x: pi_c, y: result.F_by_mdot_0 };
+                    });
+                    datasets1.push({
+                        label: `M₀=${M_0} (AB)`,
+                        data: dataAB,
+                        borderColor: colorsAB[idx % colorsAB.length],
+                        backgroundColor: colorsAB[idx % colorsAB.length],
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    });
+                }
+            });
+            
+            createChart('chart1', {
+                type: 'line',
+                data: { datasets: datasets1 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 40,
+                            title: { display: true, text: 'πc', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 1200,
+                            title: { display: true, text: 'F/ṁ₀ [N/(kg/s)]', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 2: Specific Fuel Consumption vs pi_c
+            const datasets2 = [];
+            M_0_voi.forEach((M_0, idx) => {
+                const data = pi_c_array.map(pi_c => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: pi_c, y: result.S };
+                });
+                datasets2.push({
+                    label: `M₀=${M_0}`,
+                    data: data,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                
+                if (afterburnerEnabled) {
+                    const dataAB = pi_c_array.map(pi_c => {
+                        const result = calculateParams(M_0, pi_c, params, constants, true);
+                        return { x: pi_c, y: result.S };
+                    });
+                    datasets2.push({
+                        label: `M₀=${M_0} (AB)`,
+                        data: dataAB,
+                        borderColor: colorsAB[idx % colorsAB.length],
+                        backgroundColor: colorsAB[idx % colorsAB.length],
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    });
+                }
+            });
+            
+            createChart('chart2', {
+                type: 'line',
+                data: { datasets: datasets2 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 40,
+                            title: { display: true, text: 'πc', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 2e-5,
+                            max: 4e-5,
+                            title: { display: true, text: 'S [(mg/s)/N]', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 3: Fuel-to-Air Ratio vs pi_c
+            const datasets3 = [];
+            M_0_voi.forEach((M_0, idx) => {
+                const data = pi_c_array.map(pi_c => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: pi_c, y: result.f };
+                });
+                datasets3.push({
+                    label: `M₀=${M_0}`,
+                    data: data,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                
+                if (afterburnerEnabled) {
+                    const dataAB = pi_c_array.map(pi_c => {
+                        const result = calculateParams(M_0, pi_c, params, constants, true);
+                        return { x: pi_c, y: result.f };
+                    });
+                    datasets3.push({
+                        label: `M₀=${M_0} (AB)`,
+                        data: dataAB,
+                        borderColor: colorsAB[idx % colorsAB.length],
+                        backgroundColor: colorsAB[idx % colorsAB.length],
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    });
+                }
+            });
+            
+            createChart('chart3', {
+                type: 'line',
+                data: { datasets: datasets3 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 40,
+                            title: { display: true, text: 'πc', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 0.035,
+                            title: { display: true, text: 'f', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 4: Efficiencies vs pi_c
+            const datasets4 = [];
+            eta_M_0_voi.forEach((M_0, idx) => {
+                const dataP = pi_c_array.map(pi_c => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: pi_c, y: result.eta_P };
+                });
+                const dataT = pi_c_array.map(pi_c => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: pi_c, y: result.eta_T };
+                });
+                const dataO = pi_c_array.map(pi_c => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: pi_c, y: result.eta_O };
+                });
+                
+                datasets4.push({
+                    label: `ηₚ (M₀=${M_0})`,
+                    data: dataP,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                datasets4.push({
+                    label: `ηₜ (M₀=${M_0})`,
+                    data: dataT,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                datasets4.push({
+                    label: `η₀ (M₀=${M_0})`,
+                    data: dataO,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+            });
+            
+            createChart('chart4', {
+                type: 'line',
+                data: { datasets: datasets4 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 40,
+                            title: { display: true, text: 'πc', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'η [%]', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 5: Specific Thrust vs M_0
+            const datasets5 = [];
+            pi_c_voi.forEach((pi_c, idx) => {
+                const data = M_0_array.map(M_0 => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: M_0, y: result.F_by_mdot_0 };
+                });
+                datasets5.push({
+                    label: `πc=${pi_c}`,
+                    data: data,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                
+                if (afterburnerEnabled) {
+                    const dataAB = M_0_array.map(M_0 => {
+                        const result = calculateParams(M_0, pi_c, params, constants, true);
+                        return { x: M_0, y: result.F_by_mdot_0 };
+                    });
+                    datasets5.push({
+                        label: `πc=${pi_c} (AB)`,
+                        data: dataAB,
+                        borderColor: colorsAB[idx % colorsAB.length],
+                        backgroundColor: colorsAB[idx % colorsAB.length],
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    });
+                }
+            });
+            
+            createChart('chart5', {
+                type: 'line',
+                data: { datasets: datasets5 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 3,
+                            title: { display: true, text: 'M₀', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 1200,
+                            title: { display: true, text: 'F/ṁ₀ [N/(kg/s)]', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 6: Specific Fuel Consumption vs M_0
+            const datasets6 = [];
+            pi_c_voi.forEach((pi_c, idx) => {
+                const data = M_0_array.map(M_0 => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: M_0, y: result.S };
+                });
+                datasets6.push({
+                    label: `πc=${pi_c}`,
+                    data: data,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                
+                if (afterburnerEnabled) {
+                    const dataAB = M_0_array.map(M_0 => {
+                        const result = calculateParams(M_0, pi_c, params, constants, true);
+                        return { x: M_0, y: result.S };
+                    });
+                    datasets6.push({
+                        label: `πc=${pi_c} (AB)`,
+                        data: dataAB,
+                        borderColor: colorsAB[idx % colorsAB.length],
+                        backgroundColor: colorsAB[idx % colorsAB.length],
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    });
+                }
+            });
+            
+            createChart('chart6', {
+                type: 'line',
+                data: { datasets: datasets6 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 3,
+                            title: { display: true, text: 'M₀', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 2e-5,
+                            max: 4e-5,
+                            title: { display: true, text: 'S [(mg/s)/N]', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 7: Fuel-to-Air Ratio vs M_0
+            const datasets7 = [];
+            pi_c_voi.forEach((pi_c, idx) => {
+                const data = M_0_array.map(M_0 => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: M_0, y: result.f };
+                });
+                datasets7.push({
+                    label: `πc=${pi_c}`,
+                    data: data,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                
+                if (afterburnerEnabled) {
+                    const dataAB = M_0_array.map(M_0 => {
+                        const result = calculateParams(M_0, pi_c, params, constants, true);
+                        return { x: M_0, y: result.f };
+                    });
+                    datasets7.push({
+                        label: `πc=${pi_c} (AB)`,
+                        data: dataAB,
+                        borderColor: colorsAB[idx % colorsAB.length],
+                        backgroundColor: colorsAB[idx % colorsAB.length],
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    });
+                }
+            });
+            
+            createChart('chart7', {
+                type: 'line',
+                data: { datasets: datasets7 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 3,
+                            title: { display: true, text: 'M₀', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 0.035,
+                            title: { display: true, text: 'f', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 8: Efficiencies vs M_0
+            const datasets8 = [];
+            eta_pi_c_voi.forEach((pi_c, idx) => {
+                const dataP = M_0_array.map(M_0 => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: M_0, y: result.eta_P };
+                });
+                const dataT = M_0_array.map(M_0 => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: M_0, y: result.eta_T };
+                });
+                const dataO = M_0_array.map(M_0 => {
+                    const result = calculateParams(M_0, pi_c, params, constants, false);
+                    return { x: M_0, y: result.eta_O };
+                });
+                
+                datasets8.push({
+                    label: `ηₚ (πc=${pi_c})`,
+                    data: dataP,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                datasets8.push({
+                    label: `ηₜ (πc=${pi_c})`,
+                    data: dataT,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+                datasets8.push({
+                    label: `η₀ (πc=${pi_c})`,
+                    data: dataO,
+                    borderColor: colors[idx],
+                    backgroundColor: colors[idx],
+                    borderWidth: 2,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    tension: 0.1
+                });
+            });
+            
+            createChart('chart8', {
+                type: 'line',
+                data: { datasets: datasets8 },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 3,
+                            title: { display: true, text: 'M₀', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'η [%]', color: '#9ca8bc', font: { family: 'JetBrains Mono' } },
+                            grid: { color: '#2a3650' },
+                            ticks: { color: '#6b7a94', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#9ca8bc', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            updateCalculations();
+        };
+    </script>
+</body>
+</html>
